@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Agidesk traduz tudo (PT → EN) com fallback
+// @name         Tradutor Agidesk
 // @match        *://pxenergy.agidesk.com/*
 // @grant        none
 // ==/UserScript==
