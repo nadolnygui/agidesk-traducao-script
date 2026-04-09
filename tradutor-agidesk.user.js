@@ -2,6 +2,7 @@
 // @name         Tradutor Agidesk
 // @match        *://pxenergy.agidesk.com/*
 // @grant        none
+// @version      1.1
 // ==/UserScript==
 
 (function() {
