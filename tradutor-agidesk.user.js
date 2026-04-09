@@ -3,6 +3,8 @@
 // @match        *://pxenergy.agidesk.com/*
 // @grant        none
 // @version      1.1
+// @updateURL    https://raw.githubusercontent.com/nadolnygui/agidesk-traducao-script/main/tradutor-agidesk.user.js
+// @downloadURL  https://raw.githubusercontent.com/nadolnygui/agidesk-traducao-script/main/tradutor-agidesk.user.js
 // ==/UserScript==
 
 (function() {
