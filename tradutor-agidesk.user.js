@@ -7,8 +7,6 @@
 (function() {
     'use strict';
 
-    console.log('Script ativo 🚀');
-
     function inserirBotao() {
         const form = document.querySelector('#formanswercontact-frontend-creation-form');
         if (!form) return;
@@ -26,7 +24,6 @@
         btn.style.marginTop = '10px';
         btn.style.width = '100%';
 
-        // 🔹 função de tradução com fallback
         async function traduzir(texto) {
             try {
                 const res = await fetch(
@@ -39,7 +36,6 @@
                 return data[0].map(item => item[0]).join('');
             } catch (e) {
                 console.error('Falha no endpoint de tradução:', e);
-                // Retorna o texto original se houver algum erro
                 return texto;
             }
         }
@@ -59,10 +55,9 @@
 
         async function traduzirEditores(flag) {
             const editores = document.querySelectorAll('.note-editable');
+
             const total = editores.length;
             const metade = total / 2;
-
-            if (total % 2 !== 0) console.warn('Quantidade de editores ímpar, pode dar erro');
 
             for (let i = 0; i < metade; i++) {
                 const pt = editores[i];
@@ -70,27 +65,62 @@
 
                 if (!pt || !en) continue;
 
-                const texto = pt.innerText.trim();
-                if (!texto || texto === "<p><br></p>") continue;
+                const clone = pt.cloneNode(true);
 
-                const traducao = await traduzir(texto);
-                en.innerHTML = `<p>${traducao}</p>`;
-                en.dispatchEvent(new Event('input', { bubbles: true }));
-                en.dispatchEvent(new Event('keyup', { bubbles: true }));
+                const walker = document.createTreeWalker(
+                    clone,
+                    NodeFilter.SHOW_TEXT,
+                    null,
+                    false
+                );
 
-                const placeholder = en.parentElement.querySelector('.note-placeholder');
-                if (placeholder) placeholder.style.display = 'none';
+                let node;
+                const textos = [];
 
-                flag.traduziuAlgo = true;
-            }
+                while (node = walker.nextNode()) {
+                    const original = node.nodeValue;
+
+                    if (!original.trim()) continue;
+
+                    const inicioEspaco = original.match(/^\s*/)[0];
+                    const fimEspaco = original.match(/\s*$/)[0];
+                    const textoLimpo = original.trim();
+
+                    textos.push({
+                        node,
+                        texto: textoLimpo,
+                        inicioEspaco,
+                        fimEspaco
+                    });
+               }
+
+        for (let item of textos) {
+            const traducao = await traduzir(item.texto);
+
+            item.node.nodeValue =
+                item.inicioEspaco +
+                traducao +
+                item.fimEspaco;
         }
+
+        en.innerHTML = clone.innerHTML;
+
+        en.dispatchEvent(new Event('input', { bubbles: true }));
+        en.dispatchEvent(new Event('keyup', { bubbles: true }));
+
+        const placeholder = en.parentElement.querySelector('.note-placeholder');
+        if (placeholder) placeholder.style.display = 'none';
+
+        flag.traduziuAlgo = true;
+    }
+}
 
         btn.onclick = async () => {
             console.log('Traduzindo tudo...');
             const flag = { traduziuAlgo: false };
 
-            await traduzirCampo('1304', '1316', flag); // assunto
-            await traduzirEditores(flag); // editores ricos
+            await traduzirCampo('1304', '1316', flag); 
+            await traduzirEditores(flag); 
 
             if (flag.traduziuAlgo) {
                 alert('Tudo traduzido 🚀');
