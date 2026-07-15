@@ -2,7 +2,7 @@
 // @name         Tradutor Agidesk
 // @match        *://pxenergy.agidesk.com/*
 // @grant        none
-// @version      1.4
+// @version      1.5
 // @updateURL    https://raw.githubusercontent.com/nadolnygui/agidesk-traducao-script/main/tradutor-agidesk.user.js
 // @downloadURL  https://raw.githubusercontent.com/nadolnygui/agidesk-traducao-script/main/tradutor-agidesk.user.js
 // @run-at       document-idle
@@ -11,17 +11,36 @@
 (function () {
     'use strict';
 
-    const FORM_SELECTOR =
-        '#formanswercontact-frontend-creation-form';
-
-    const BUTTON_ID =
-        'btn-traduzir';
+    const FORM_SELECTOR = '#forms-answers-steps-199-form';
+    const BUTTON_ID = 'btn-traduzir';
+    const ROW_ID = 'linha-subject-tradutor';
 
     const TIPTAP_SELECTOR =
         '.tiptap.ProseMirror.tiptap-content[contenteditable="true"]';
 
-    const SUMMERNOTE_SELECTOR =
-        '.note-editable';
+    const SUMMERNOTE_SELECTOR = '.note-editable';
+
+    function estaVisivel(elemento) {
+        if (!elemento) return false;
+
+        const estilo = getComputedStyle(elemento);
+        const caixa = elemento.getBoundingClientRect();
+
+        return (
+            estilo.display !== 'none' &&
+            estilo.visibility !== 'hidden' &&
+            caixa.width > 0 &&
+            caixa.height > 0
+        );
+    }
+
+    function encontrarTituloCriarERFD() {
+        return [...document.querySelectorAll('h4')]
+            .find(elemento =>
+                estaVisivel(elemento) &&
+                elemento.textContent.trim() === 'Criar ERFD'
+            );
+    }
 
     async function traduzir(texto) {
         try {
@@ -101,13 +120,11 @@
         nameEN,
         flag
     ) {
-        const campoPT = form.querySelector(
-            `[name="${namePT}"]`
-        );
+        const campoPT =
+            form.querySelector(`[name="${namePT}"]`);
 
-        const campoEN = form.querySelector(
-            `[name="${nameEN}"]`
-        );
+        const campoEN =
+            form.querySelector(`[name="${nameEN}"]`);
 
         if (!campoPT || !campoEN) {
             return;
@@ -119,7 +136,8 @@
             return;
         }
 
-        const traducao = await traduzir(textoPT);
+        const traducao =
+            await traduzir(textoPT);
 
         definirValorNativo(
             campoEN,
@@ -144,7 +162,6 @@
             );
 
         const textos = [];
-
         let node;
 
         while ((node = walker.nextNode())) {
@@ -158,10 +175,8 @@
             textos.push({
                 node,
                 texto: original.trim(),
-
                 inicioEspaco:
                     original.match(/^\s*/)?.[0] || '',
-
                 fimEspaco:
                     original.match(/\s*$/)?.[0] || ''
             });
@@ -189,21 +204,21 @@
             nivel < 6 && container;
             nivel++
         ) {
-            const editoresNoContainer =
+            const editores =
                 container.querySelectorAll(
                     TIPTAP_SELECTOR
                 );
 
-            const textareasNoContainer =
+            const textareas =
                 container.querySelectorAll(
                     'textarea'
                 );
 
             if (
-                editoresNoContainer.length === 1 &&
-                textareasNoContainer.length === 1
+                editores.length === 1 &&
+                textareas.length === 1
             ) {
-                return textareasNoContainer[0];
+                return textareas[0];
             }
 
             container =
@@ -219,7 +234,6 @@
         html
     ) {
         editor.focus();
-
         editor.innerHTML = html;
 
         editor.dispatchEvent(
@@ -280,9 +294,8 @@
 
         if (editores.length % 2 !== 0) {
             console.warn(
-                'Quantidade ímpar de editores TipTap. ' +
-                'A tradução foi interrompida para evitar ' +
-                'preencher campos errados.'
+                'Quantidade ímpar de editores. ' +
+                'A tradução foi interrompida.'
             );
 
             return true;
@@ -297,11 +310,11 @@
 
         const textareas =
             editores.map((editor, indice) => {
-                const textareaEncontrado =
+                const encontrado =
                     encontrarTextareaDoEditor(editor);
 
-                if (textareaEncontrado) {
-                    return textareaEncontrado;
+                if (encontrado) {
+                    return encontrado;
                 }
 
                 if (
@@ -340,11 +353,8 @@
                     ? textareaPT.value
                     : editorPT.innerHTML;
 
-            const textoPT =
-                editorPT.innerText.trim();
-
             if (
-                !textoPT &&
+                !editorPT.innerText.trim() &&
                 !textareaPT?.value?.trim()
             ) {
                 continue;
@@ -375,17 +385,10 @@
             )
         ];
 
-        if (editores.length === 0) {
-            return;
-        }
-
-        if (editores.length % 2 !== 0) {
-            console.warn(
-                'Quantidade ímpar de editores Summernote. ' +
-                'A tradução foi interrompida para evitar ' +
-                'preencher campos errados.'
-            );
-
+        if (
+            editores.length === 0 ||
+            editores.length % 2 !== 0
+        ) {
             return;
         }
 
@@ -428,17 +431,6 @@
                 })
             );
 
-            const placeholder =
-                editorEN.parentElement
-                    ?.querySelector(
-                        '.note-placeholder'
-                    );
-
-            if (placeholder) {
-                placeholder.style.display =
-                    'none';
-            }
-
             flag.traduziuAlgo = true;
         }
     }
@@ -461,45 +453,148 @@
         }
     }
 
-function encontrarLocalDoBotao(form) {
-    const subject = form.querySelector('[name="1316"]');
+    function removerBotaoEReverterLinha() {
+        document
+            .querySelector(`#${BUTTON_ID}`)
+            ?.remove();
 
-    if (!subject || !subject.parentElement) {
-        return form;
+        const linha =
+            document.querySelector(`#${ROW_ID}`);
+
+        if (!linha) {
+            return;
+        }
+
+        const subject =
+            linha.querySelector('[name="1316"]');
+
+        if (
+            subject &&
+            linha.parentElement
+        ) {
+            linha.parentElement.insertBefore(
+                subject,
+                linha
+            );
+        }
+
+        linha.remove();
     }
 
-    const container = subject.parentElement;
+    function posicionarBotao(
+        form,
+        subject,
+        botao
+    ) {
+        let linha =
+            form.querySelector(`#${ROW_ID}`);
 
-    /*
-     * Primeira linha: label ocupando toda a largura.
-     * Segunda linha: Subject à esquerda e botão à direita.
-     */
-    container.style.display = 'grid';
-    container.style.gridTemplateColumns =
-        'minmax(0, 1fr) auto';
-    container.style.columnGap = '10px';
-    container.style.rowGap = '6px';
-    container.style.alignItems = 'end';
+        if (!linha) {
+            linha =
+                document.createElement('div');
 
-    /*
-     * Faz o label continuar ocupando a linha inteira.
-     */
-    [...container.children].forEach(elemento => {
-        if (elemento !== subject) {
-            elemento.style.gridColumn = '1 / -1';
+            linha.id = ROW_ID;
+
+            subject.parentElement.insertBefore(
+                linha,
+                subject
+            );
+
+            linha.appendChild(subject);
         }
-    });
 
-    subject.style.gridColumn = '1';
-    subject.style.minWidth = '0';
-    subject.style.setProperty(
-        'width',
-        '100%',
-        'important'
-    );
+        linha.appendChild(botao);
 
-    return container;
-}
+        linha.style.setProperty(
+            'display',
+            'flex',
+            'important'
+        );
+
+        linha.style.setProperty(
+            'align-items',
+            'center',
+            'important'
+        );
+
+        linha.style.setProperty(
+            'gap',
+            '16px',
+            'important'
+        );
+
+        linha.style.setProperty(
+            'width',
+            '100%',
+            'important'
+        );
+
+        subject.style.setProperty(
+            'width',
+            'auto',
+            'important'
+        );
+
+        subject.style.setProperty(
+            'flex',
+            '1 1 0',
+            'important'
+        );
+
+        subject.style.setProperty(
+            'min-width',
+            '0',
+            'important'
+        );
+
+        botao.style.setProperty(
+            'margin',
+            '0',
+            'important'
+        );
+
+        botao.style.setProperty(
+            'width',
+            'auto',
+            'important'
+        );
+
+        botao.style.setProperty(
+            'min-width',
+            '150px',
+            'important'
+        );
+
+        botao.style.setProperty(
+            'padding-left',
+            '22px',
+            'important'
+        );
+
+        botao.style.setProperty(
+            'padding-right',
+            '22px',
+            'important'
+        );
+
+        botao.style.setProperty(
+            'height',
+            '38px',
+            'important'
+        );
+
+        botao.style.setProperty(
+            'white-space',
+            'nowrap',
+            'important'
+        );
+
+        botao.style.setProperty(
+            'flex',
+            '0 0 auto',
+            'important'
+        );
+    }
 
     function inserirBotao() {
         const form =
@@ -507,7 +602,27 @@ function encontrarLocalDoBotao(form) {
                 FORM_SELECTOR
             );
 
-        if (!form) {
+        const tituloCriarERFD =
+            encontrarTituloCriarERFD();
+
+        const subject =
+            form?.querySelector(
+                '[name="1316"]'
+            );
+
+        /*
+         * O botão só aparece quando:
+         * 1. O formulário ERFD está aberto;
+         * 2. O título visível é "Criar ERFD";
+         * 3. O campo Subject está visível.
+         */
+        if (
+            !form ||
+            !tituloCriarERFD ||
+            !subject ||
+            !estaVisivel(subject)
+        ) {
+            removerBotaoEReverterLinha();
             return;
         }
 
@@ -519,62 +634,28 @@ function encontrarLocalDoBotao(form) {
             return;
         }
 
-        const campoBase =
-            encontrarLocalDoBotao(form);
-
-        if (!campoBase) {
-            return;
-        }
-
         const botao =
             document.createElement('button');
 
-        botao.id =
-            BUTTON_ID;
-
-        botao.innerText =
+        botao.id = BUTTON_ID;
+        botao.type = 'button';
+        botao.textContent =
             '⚡ Traduzir Tudo';
-
-        botao.type =
-            'button';
 
         botao.className =
             'ui button primary small';
-
-        botao.style.marginTop =
-            '0';
-
-        botao.style.width =
-            'auto';
-
-        botao.style.whiteSpace =
-            'nowrap';
-
-        botao.style.gridColumn =
-            '2';
-
-        botao.style.alignSelf =
-            'end';
-
-        botao.style.height =
-            '38px';
 
         botao.addEventListener(
             'click',
             async () => {
                 const textoOriginal =
-                    botao.innerText;
+                    botao.textContent;
 
                 botao.disabled = true;
-
-                botao.innerText =
+                botao.textContent =
                     '⏳ Traduzindo...';
 
                 try {
-                    console.log(
-                        'Traduzindo tudo...'
-                    );
-
                     const flag = {
                         traduziuAlgo: false
                     };
@@ -603,25 +684,27 @@ function encontrarLocalDoBotao(form) {
 
                 } catch (erro) {
                     console.error(
-                        'Erro inesperado no Tradutor Agidesk:',
+                        'Erro no Tradutor Agidesk:',
                         erro
                     );
 
                     alert(
-                        'Ocorreu um erro ao traduzir. ' +
-                        'Consulte o Console.'
+                        'Ocorreu um erro ao traduzir.'
                     );
 
                 } finally {
                     botao.disabled = false;
-
-                    botao.innerText =
+                    botao.textContent =
                         textoOriginal;
                 }
             }
         );
 
-        campoBase.appendChild(botao);
+        posicionarBotao(
+            form,
+            subject,
+            botao
+        );
     }
 
     inserirBotao();
